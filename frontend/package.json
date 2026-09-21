@@ -8,6 +8,7 @@
     "lint": "eslint --ext .js,.vue ./src"
   },
   "dependencies": {
+    "@heyfred/shared": "workspace:*",
     "@quasar/extras": "^1.16.0",
     "axios": "^1.7.0",
     "pinia": "^2.2.0",

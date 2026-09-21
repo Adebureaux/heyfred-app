@@ -16,6 +16,17 @@ module.exports = configure(function () {
       env: {
         API_BASE_URL: process.env.VITE_API_BASE_URL || "http://localhost:3000",
       },
+      extendViteConf(viteConf) {
+        // @heyfred/shared is a pnpm workspace package (symlinked, not a true
+        // node_modules dep), so Vite serves its CommonJS dist/index.js raw via
+        // @fs/ instead of pre-bundling it to ESM. Force it through esbuild's
+        // CJS->ESM interop so the browser can import named exports from it.
+        viteConf.optimizeDeps = viteConf.optimizeDeps || {};
+        viteConf.optimizeDeps.include = [
+          ...(viteConf.optimizeDeps.include || []),
+          "@heyfred/shared",
+        ];
+      },
     },
 
     devServer: {
@@ -26,7 +37,7 @@ module.exports = configure(function () {
 
     framework: {
       config: {},
-      plugins: [],
+      plugins: ["Notify"],
     },
   };
 });

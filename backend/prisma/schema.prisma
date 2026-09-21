@@ -8,10 +8,125 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
   passwordHash String
   name         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  campaigns    Campaign[]
+}
+
+model Campaign {
+  id     String         @id @default(uuid())
+  userId String
+  user   User           @relation(fields: [userId], references: [id])
+  name   String
+  status CampaignStatus @default(TARGETING_SET)
+
+  targetLocation   String
+  targetSector     String
+  targetIndustryId String
+  targetJobTitles  String[]
+  targetKeywords   String?
+
+  companies    Company[]
+  contacts     Contact[]
+  scrapingJobs ScrapingJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Company {
+  id         String   @id @default(uuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+
+  name        String
+  domain      String?
+  sector      String?
+  size        String?
+  location    String?
+  linkedinUrl String?
+  raw         Json?
+
+  contacts  Contact[]
+  createdAt DateTime  @default(now())
+
+  @@index([campaignId])
+}
+
+model Contact {
+  id         String   @id @default(uuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  firstName   String
+  lastName    String
+  jobTitle    String
+  linkedinUrl String?
+  email       String?
+  location    String?
+  raw         Json?
+
+  status    CampaignContactStatus @default(PENDING)
+  createdAt DateTime              @default(now())
+
+  @@index([campaignId])
+}
+
+model ScrapingJob {
+  id         String   @id @default(uuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+
+  stage       ScrapingJobStage
+  status      ScrapingJobStatus @default(QUEUED)
+  resultCount Int?
+  error       String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId])
+}
+
+enum CampaignStatus {
+  DRAFT_TARGETING
+  TARGETING_SET
+  SCRAPING
+  SCRAPED
+  DRAFT_MESSAGING
+  READY
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ScrapingJobStage {
+  COMPANY_SEARCH
+  DECISION_MAKER_SEARCH
+}
+
+enum ScrapingJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum CampaignContactStatus {
+  PENDING
+  MESSAGE_SENT
+  REPLIED
+  INTERESTED
+  MEETING_BOOKED
+  NOT_INTERESTED
+  FAILED
 }
