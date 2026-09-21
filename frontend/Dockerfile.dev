@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN corepack enable
+
+COPY package.json pnpm-workspace.yaml ./
+COPY frontend/package.json ./frontend/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
+
+RUN pnpm install --frozen-lockfile=false
+
+COPY packages/shared ./packages/shared
+COPY frontend ./frontend
+
+WORKDIR /app/frontend
+
+EXPOSE 9000
+
+CMD ["pnpm", "run", "dev"]
