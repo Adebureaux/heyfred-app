@@ -1,16 +1,31 @@
-export enum CampaignStatus {
-  DRAFT_TARGETING = "DRAFT_TARGETING",
-  TARGETING_SET = "TARGETING_SET",
+export enum UnipileAccountStatus {
+  CONNECTED = "CONNECTED",
+  DISCONNECTED = "DISCONNECTED",
+  ERROR = "ERROR",
+}
+
+export enum ProspectListStatus {
+  DRAFT = "DRAFT",
+  BRIEF_SET = "BRIEF_SET",
   SCRAPING = "SCRAPING",
-  SCRAPED = "SCRAPED",
-  DRAFT_MESSAGING = "DRAFT_MESSAGING",
+  ENRICHING = "ENRICHING",
   READY = "READY",
-  RUNNING = "RUNNING",
-  COMPLETED = "COMPLETED",
   FAILED = "FAILED",
 }
 
-export enum CampaignContactStatus {
+export enum ScrapingRunStage {
+  COMPANY_SEARCH = "COMPANY_SEARCH",
+  PROSPECT_ENRICHMENT = "PROSPECT_ENRICHMENT",
+}
+
+export enum ScrapingRunStatus {
+  QUEUED = "QUEUED",
+  RUNNING = "RUNNING",
+  SUCCEEDED = "SUCCEEDED",
+  FAILED = "FAILED",
+}
+
+export enum ProspectStatus {
   PENDING = "PENDING",
   MESSAGE_SENT = "MESSAGE_SENT",
   REPLIED = "REPLIED",
@@ -18,26 +33,4 @@ export enum CampaignContactStatus {
   MEETING_BOOKED = "MEETING_BOOKED",
   NOT_INTERESTED = "NOT_INTERESTED",
   FAILED = "FAILED",
-}
-
-export enum ScrapingJobStage {
-  COMPANY_SEARCH = "COMPANY_SEARCH",
-  DECISION_MAKER_SEARCH = "DECISION_MAKER_SEARCH",
-}
-
-export enum ScrapingJobStatus {
-  QUEUED = "QUEUED",
-  RUNNING = "RUNNING",
-  SUCCEEDED = "SUCCEEDED",
-  FAILED = "FAILED",
-}
-
-export enum CampaignChannel {
-  LINKEDIN = "LINKEDIN",
-}
-
-export enum UnipileAccountStatus {
-  CONNECTED = "CONNECTED",
-  DISCONNECTED = "DISCONNECTED",
-  ERROR = "ERROR",
 }

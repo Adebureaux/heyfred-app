@@ -5,7 +5,7 @@ module.exports = configure(function () {
   return {
     boot: ["axios", "pinia"],
     css: ["app.scss"],
-    extras: ["roboto-font", "material-icons"],
+    extras: ["material-icons"],
 
     build: {
       target: {
@@ -26,6 +26,17 @@ module.exports = configure(function () {
           ...(viteConf.optimizeDeps.include || []),
           "@heyfred/shared",
         ];
+
+        // Same symlink issue affects the production build: Rollup's commonjs
+        // plugin only transforms CJS files under node_modules by default, so
+        // the workspace package's real (symlink-resolved) path outside
+        // node_modules is skipped, leaving it as unbundled CJS with no
+        // statically analyzable named exports. Widen the include pattern.
+        viteConf.build = viteConf.build || {};
+        viteConf.build.commonjsOptions = {
+          ...(viteConf.build.commonjsOptions || {}),
+          include: [/node_modules/, /packages\/shared/],
+        };
       },
     },
 

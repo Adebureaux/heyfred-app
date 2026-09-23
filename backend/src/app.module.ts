@@ -7,8 +7,7 @@ import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
 import { AuthModule } from "./auth/auth.module";
-import { CampaignsModule } from "./campaigns/campaigns.module";
-import { ScrapingModule } from "./scraping/scraping.module";
+import { ProspectListsModule } from "./prospect-lists/prospect-lists.module";
 
 @Module({
   imports: [
@@ -27,8 +26,7 @@ import { ScrapingModule } from "./scraping/scraping.module";
     PrismaModule,
     UsersModule,
     AuthModule,
-    CampaignsModule,
-    ScrapingModule,
+    ProspectListsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

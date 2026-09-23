@@ -1,7 +1,9 @@
-export const COMPANY_SEARCH_QUEUE = "company-search";
-export const DECISION_MAKER_SEARCH_QUEUE = "decision-maker-search";
+export const COMPANY_SEARCH_QUEUE = "prospect-company-search";
+export const PROSPECT_ENRICHMENT_QUEUE = "prospect-enrichment";
+export const ENRICHMENT_CONCURRENCY = 5;
 
-// https://apify.com/harvestapi/linkedin-company-search
-export const COMPANY_SEARCH_ACTOR = "harvestapi~linkedin-company-search";
-// https://apify.com/harvestapi/linkedin-profile-search
-export const DECISION_MAKER_SEARCH_ACTOR = "harvestapi~linkedin-profile-search";
+// Temporary cost-safety caps for the first real end-to-end test — hard limits enforced
+// server-side regardless of what the AI-generated actor input requests, since actors don't
+// always honor a requested maxItems exactly. Raise once real pricing/behavior is confirmed.
+export const MAX_COMPANIES_PER_RUN = 1;
+export const MAX_PROSPECTS_PER_COMPANY = 2;

@@ -1,1 +1,31 @@
 // app-wide styles
+
+@font-face {
+  font-family: "Fustat";
+  src: url("./fonts/fustat.ttf") format("truetype");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  --heyfred-orange: #f07842;
+  --heyfred-dot: #ef783f;
+  --heyfred-ink: #161616;
+  --heyfred-charcoal: #11100f;
+  --heyfred-peach: #fff4e9;
+  --heyfred-halo: #ffe3c7;
+  --heyfred-border: #e9ded4;
+  --heyfred-muted: #887568;
+  --heyfred-cream: #fcf9f5;
+}
+
+body {
+  font-family: "Fustat", Arial, sans-serif;
+  background: var(--heyfred-cream);
+  color: var(--heyfred-ink);
+}
+
+.heyfred-workspace .q-page-container {
+  background: radial-gradient(ellipse 55% 350px at 100% 0, #ffe9d480, transparent),
+    var(--heyfred-cream);
+}

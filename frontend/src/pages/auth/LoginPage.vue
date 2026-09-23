@@ -1,9 +1,10 @@
 <template>
-  <q-page class="flex flex-center">
+  <q-page class="flex flex-center column">
+    <HeyFredLogo class="q-mb-lg" />
     <q-card class="auth-card q-pa-md">
       <q-card-section>
-        <div class="text-h5">Connexion</div>
-        <div class="text-caption text-grey">Accédez à votre espace HeyFred</div>
+        <div class="text-h5">Login</div>
+        <div class="text-caption text-grey">Access your HeyFred workspace</div>
       </q-card-section>
 
       <q-card-section>
@@ -13,20 +14,20 @@
             type="email"
             label="Email"
             lazy-rules
-            :rules="[(val) => !!val || 'Email requis']"
+            :rules="[(val) => !!val || 'Email required']"
           />
           <q-input
             v-model="password"
             type="password"
-            label="Mot de passe"
+            label="Password"
             lazy-rules
-            :rules="[(val) => !!val || 'Mot de passe requis']"
+            :rules="[(val) => !!val || 'Password required']"
           />
 
           <q-btn
             type="submit"
             color="primary"
-            label="Se connecter"
+            label="Log in"
             class="full-width"
             :loading="loading"
           />
@@ -34,8 +35,8 @@
       </q-card-section>
 
       <q-card-section class="text-center">
-        Pas encore de compte ?
-        <router-link to="/register">Créer un compte</router-link>
+        Don't have an account yet?
+        <router-link to="/register">Create an account</router-link>
       </q-card-section>
     </q-card>
   </q-page>
@@ -47,9 +48,11 @@ import { useRouter } from "vue-router";
 import { Notify } from "quasar";
 import { useAuthStore } from "stores/auth";
 import { extractErrorMessage } from "src/utils/error-message";
+import HeyFredLogo from "components/HeyFredLogo.vue";
 
 export default defineComponent({
   name: "LoginPage",
+  components: { HeyFredLogo },
   setup() {
     const authStore = useAuthStore();
     const router = useRouter();
@@ -66,7 +69,7 @@ export default defineComponent({
       } catch (err) {
         Notify.create({
           type: "negative",
-          message: extractErrorMessage(err, "Connexion impossible"),
+          message: extractErrorMessage(err, "Login failed"),
         });
       } finally {
         loading.value = false;
@@ -82,5 +85,8 @@ export default defineComponent({
 .auth-card {
   width: 100%;
   max-width: 400px;
+  border-radius: 24px;
+  border: 1px solid var(--heyfred-border);
+  box-shadow: 0 4px 18px rgba(113, 68, 23, 0.06);
 }
 </style>

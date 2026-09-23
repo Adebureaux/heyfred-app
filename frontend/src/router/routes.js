@@ -16,12 +16,36 @@ const routes = [
     component: () => import("layouts/MainLayout.vue"),
     meta: { requiresAuth: true },
     children: [
-      { path: "", component: () => import("pages/IndexPage.vue") },
-      { path: "campaigns", component: () => import("pages/campaigns/CampaignsListPage.vue") },
-      { path: "campaigns/new", component: () => import("pages/campaigns/NewCampaignPage.vue") },
+      { path: "", component: () => import("pages/IndexPage.vue"), meta: { label: "Overview" } },
       {
-        path: "campaigns/:id",
-        component: () => import("pages/campaigns/CampaignDetailPage.vue"),
+        path: "prospects",
+        component: () => import("pages/ProspectsPage.vue"),
+        meta: { label: "Prospects" },
+      },
+      {
+        path: "prospects/new",
+        component: () => import("pages/prospects/NewProspectListPage.vue"),
+        meta: { label: "Create a list" },
+      },
+      {
+        path: "prospects/new/scraping",
+        component: () => import("pages/prospects/NewScrapingListPage.vue"),
+        meta: { label: "One-off scraping" },
+      },
+      {
+        path: "prospects/:id",
+        component: () => import("pages/prospects/ProspectListDetailPage.vue"),
+        meta: { label: "Prospect list" },
+      },
+      {
+        path: "campaigns",
+        component: () => import("pages/CampaignsPage.vue"),
+        meta: { label: "Campaigns" },
+      },
+      {
+        path: "settings/linkedin",
+        component: () => import("pages/settings/LinkedInSettingsPage.vue"),
+        meta: { label: "Connect LinkedIn" },
       },
     ],
   },

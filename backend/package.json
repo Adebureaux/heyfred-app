@@ -15,6 +15,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@heyfred/shared": "workspace:*",
     "@nestjs/bullmq": "^10.2.0",
     "@nestjs/common": "^10.4.0",

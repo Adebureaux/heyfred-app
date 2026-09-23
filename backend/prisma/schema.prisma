@@ -8,31 +8,49 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
+  id           String   @id @default(uuid())
+  email        String   @unique
   passwordHash String
   name         String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  campaigns    Campaign[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  prospectLists  ProspectList[]
+  unipileAccount UnipileAccount?
 }
 
-model Campaign {
-  id     String         @id @default(uuid())
+model UnipileAccount {
+  id               String               @id @default(uuid())
+  userId           String               @unique
+  user             User                 @relation(fields: [userId], references: [id])
+  unipileAccountId String?
+  status           UnipileAccountStatus @default(DISCONNECTED)
+  connectedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProspectList {
+  id     String             @id @default(uuid())
   userId String
-  user   User           @relation(fields: [userId], references: [id])
+  user   User               @relation(fields: [userId], references: [id])
   name   String
-  status CampaignStatus @default(TARGETING_SET)
+  status ProspectListStatus @default(DRAFT)
 
-  targetLocation   String
-  targetSector     String
-  targetIndustryId String
-  targetJobTitles  String[]
-  targetKeywords   String?
+  offerDescription     String
+  valueProposition     String?
+  targetIndustries     String[]
+  targetCompanySizeMin Int?
+  targetCompanySizeMax Int?
+  targetLocations      String[]
+  targetJobTitles      String[]
+  additionalCriteria   String?
+  exclusions           String?
 
-  companies    Company[]
-  contacts     Contact[]
-  scrapingJobs ScrapingJob[]
+  companies    ScrapedCompany[]
+  prospects    Prospect[]
+  scrapingRuns ScrapingRun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -40,88 +58,85 @@ model Campaign {
   @@index([userId])
 }
 
-model Company {
-  id         String   @id @default(uuid())
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
+model ScrapingRun {
+  id             String       @id @default(uuid())
+  prospectListId String
+  prospectList   ProspectList @relation(fields: [prospectListId], references: [id])
 
-  name        String
-  domain      String?
-  sector      String?
-  size        String?
-  location    String?
-  linkedinUrl String?
-  raw         Json?
+  stage              ScrapingRunStage
+  status             ScrapingRunStatus @default(QUEUED)
+  selectedActorId    String?
+  selectionReasoning String?
+  actorInput         Json?
+  resultCount        Int?
+  error              String?
+  startedAt          DateTime?
+  finishedAt         DateTime?
 
-  contacts  Contact[]
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
-  @@index([campaignId])
+  @@index([prospectListId])
 }
 
-model Contact {
-  id         String   @id @default(uuid())
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
-  companyId  String
-  company    Company  @relation(fields: [companyId], references: [id])
+model ScrapedCompany {
+  id             String       @id @default(uuid())
+  prospectListId String
+  prospectList   ProspectList @relation(fields: [prospectListId], references: [id])
+
+  name              String
+  domain            String?
+  linkedinCompanyId String?
+  linkedinUrl       String?
+  raw               Json?
+
+  prospects Prospect[]
+  createdAt DateTime   @default(now())
+
+  @@index([prospectListId])
+}
+
+model Prospect {
+  id             String         @id @default(uuid())
+  prospectListId String
+  prospectList   ProspectList   @relation(fields: [prospectListId], references: [id])
+  companyId      String
+  company        ScrapedCompany @relation(fields: [companyId], references: [id])
 
   firstName   String
   lastName    String
   jobTitle    String
   linkedinUrl String?
   email       String?
-  location    String?
   raw         Json?
 
-  status    CampaignContactStatus @default(PENDING)
-  createdAt DateTime              @default(now())
+  status    ProspectStatus @default(PENDING)
+  createdAt DateTime       @default(now())
 
-  @@index([campaignId])
+  @@index([prospectListId])
 }
 
-model ScrapingJob {
-  id         String   @id @default(uuid())
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
-
-  stage       ScrapingJobStage
-  status      ScrapingJobStatus @default(QUEUED)
-  resultCount Int?
-  error       String?
-  startedAt   DateTime?
-  finishedAt  DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([campaignId])
-}
-
-enum CampaignStatus {
-  DRAFT_TARGETING
-  TARGETING_SET
+enum ProspectListStatus {
+  DRAFT
+  BRIEF_SET
   SCRAPING
-  SCRAPED
-  DRAFT_MESSAGING
+  ENRICHING
   READY
-  RUNNING
-  COMPLETED
   FAILED
 }
 
-enum ScrapingJobStage {
+enum ScrapingRunStage {
   COMPANY_SEARCH
-  DECISION_MAKER_SEARCH
+  PROSPECT_ENRICHMENT
 }
 
-enum ScrapingJobStatus {
+enum ScrapingRunStatus {
   QUEUED
   RUNNING
   SUCCEEDED
   FAILED
 }
 
-enum CampaignContactStatus {
+enum ProspectStatus {
   PENDING
   MESSAGE_SENT
   REPLIED
@@ -129,4 +144,10 @@ enum CampaignContactStatus {
   MEETING_BOOKED
   NOT_INTERESTED
   FAILED
+}
+
+enum UnipileAccountStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
 }

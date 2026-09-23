@@ -1,6 +1,6 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
-import { CampaignStatus, ScrapingJobStage, ScrapingJobStatus } from "@prisma/client";
+import { ProspectListStatus, ScrapingRunStage, ScrapingRunStatus } from "@prisma/client";
 import { Queue } from "bullmq";
 import { PrismaService } from "../prisma/prisma.service";
 import { COMPANY_SEARCH_QUEUE } from "./scraping.constants";
@@ -12,47 +12,43 @@ export class ScrapingService {
     @InjectQueue(COMPANY_SEARCH_QUEUE) private readonly companySearchQueue: Queue,
   ) {}
 
-  async triggerForCampaign(campaignId: string) {
-    await this.prisma.contact.deleteMany({ where: { campaignId } });
-    await this.prisma.company.deleteMany({ where: { campaignId } });
+  async triggerForProspectList(prospectListId: string) {
+    await this.prisma.prospect.deleteMany({ where: { prospectListId } });
+    await this.prisma.scrapedCompany.deleteMany({ where: { prospectListId } });
 
-    const companyJob = await this.prisma.scrapingJob.create({
-      data: { campaignId, stage: ScrapingJobStage.COMPANY_SEARCH, status: ScrapingJobStatus.QUEUED },
-    });
-    const decisionMakerJob = await this.prisma.scrapingJob.create({
+    const companySearchRun = await this.prisma.scrapingRun.create({
       data: {
-        campaignId,
-        stage: ScrapingJobStage.DECISION_MAKER_SEARCH,
-        status: ScrapingJobStatus.QUEUED,
+        prospectListId,
+        stage: ScrapingRunStage.COMPANY_SEARCH,
+        status: ScrapingRunStatus.QUEUED,
+      },
+    });
+    const enrichmentRun = await this.prisma.scrapingRun.create({
+      data: {
+        prospectListId,
+        stage: ScrapingRunStage.PROSPECT_ENRICHMENT,
+        status: ScrapingRunStatus.QUEUED,
       },
     });
 
-    await this.prisma.campaign.update({
-      where: { id: campaignId },
-      data: { status: CampaignStatus.SCRAPING },
+    await this.prisma.prospectList.update({
+      where: { id: prospectListId },
+      data: { status: ProspectListStatus.SCRAPING },
     });
 
     await this.companySearchQueue.add("run", {
-      campaignId,
-      scrapingJobId: companyJob.id,
-      nextScrapingJobId: decisionMakerJob.id,
+      prospectListId,
+      scrapingRunId: companySearchRun.id,
+      nextScrapingRunId: enrichmentRun.id,
     });
 
-    return this.listJobsForCampaign(campaignId);
+    return this.listRunsForProspectList(prospectListId);
   }
 
-  listJobsForCampaign(campaignId: string) {
-    return this.prisma.scrapingJob.findMany({
-      where: { campaignId },
+  listRunsForProspectList(prospectListId: string) {
+    return this.prisma.scrapingRun.findMany({
+      where: { prospectListId },
       orderBy: { createdAt: "asc" },
-    });
-  }
-
-  listContactsForCampaign(campaignId: string) {
-    return this.prisma.contact.findMany({
-      where: { campaignId },
-      include: { company: true },
-      orderBy: { createdAt: "desc" },
     });
   }
 }
