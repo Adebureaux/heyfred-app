@@ -45,7 +45,6 @@ services:
       - "3000:3000"
     volumes:
       - ./backend:/app/backend
-      - ./packages/shared:/app/packages/shared
       - backend_node_modules:/app/backend/node_modules
     depends_on:
       postgres:
@@ -65,7 +64,6 @@ services:
       - "9000:9000"
     volumes:
       - ./frontend:/app/frontend
-      - ./packages/shared:/app/packages/shared
       - frontend_node_modules:/app/frontend/node_modules
     depends_on:
       - backend

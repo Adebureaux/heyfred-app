@@ -61,6 +61,12 @@ export class UnipileAccountsController {
     const linkedInAccount = accounts.find((account) => account.type === "LINKEDIN");
 
     if (!linkedInAccount) {
+      // Otherwise a stale CONNECTED row (e.g. after switching Unipile workspace/API key) keeps
+      // pointing at an account that no longer exists, and runs fail with "Account not found".
+      await this.prisma.unipileAccount.updateMany({
+        where: { userId: user.id },
+        data: { status: UnipileAccountStatus.DISCONNECTED, unipileAccountId: null, connectedAt: null },
+      });
       return { status: UnipileAccountStatus.DISCONNECTED };
     }
 

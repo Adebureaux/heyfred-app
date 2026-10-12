@@ -36,8 +36,9 @@ model ProspectList {
   userId String
   user   User               @relation(fields: [userId], references: [id])
   name   String
-  status ProspectListStatus @default(DRAFT)
+  status ProspectListStatus @default(BRIEF_SET)
 
+  targetType           ProspectTargetType
   offerDescription     String
   valueProposition     String?
   targetIndustries     String[]
@@ -47,6 +48,7 @@ model ProspectList {
   targetJobTitles      String[]
   additionalCriteria   String?
   exclusions           String?
+  maxProspects         Int                @default(10)
 
   companies    ScrapedCompany[]
   prospects    Prospect[]
@@ -63,15 +65,14 @@ model ScrapingRun {
   prospectListId String
   prospectList   ProspectList @relation(fields: [prospectListId], references: [id])
 
-  stage              ScrapingRunStage
-  status             ScrapingRunStatus @default(QUEUED)
-  selectedActorId    String?
-  selectionReasoning String?
-  actorInput         Json?
-  resultCount        Int?
-  error              String?
-  startedAt          DateTime?
-  finishedAt         DateTime?
+  stage           ScrapingRunStage
+  status          ScrapingRunStatus @default(QUEUED)
+  selectedActorId String?
+  actorInput      Json?
+  resultCount     Int?
+  error           String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
 
   createdAt DateTime @default(now())
 
@@ -87,6 +88,10 @@ model ScrapedCompany {
   domain            String?
   linkedinCompanyId String?
   linkedinUrl       String?
+  email             String?
+  phone             String?
+  fitVerdict        FitVerdict?
+  fitReason         String?
   raw               Json?
 
   prospects Prospect[]
@@ -107,6 +112,9 @@ model Prospect {
   jobTitle    String
   linkedinUrl String?
   email       String?
+  phone       String?
+  fitVerdict  FitVerdict?
+  fitReason   String?
   raw         Json?
 
   status    ProspectStatus @default(PENDING)
@@ -115,8 +123,20 @@ model Prospect {
   @@index([prospectListId])
 }
 
+// Declaration order matters: sorting ascending puts the best fits first.
+enum FitVerdict {
+  MATCH
+  PARTIAL
+  MISMATCH
+}
+
+enum ProspectTargetType {
+  B2B_COMPANIES
+  AGENCIES_FREELANCERS
+  LOCAL_BUSINESSES
+}
+
 enum ProspectListStatus {
-  DRAFT
   BRIEF_SET
   SCRAPING
   ENRICHING

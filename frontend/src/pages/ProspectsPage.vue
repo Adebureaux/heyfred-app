@@ -18,9 +18,6 @@
         <q-icon name="groups" color="primary" size="28px" />
       </template>
       No prospects yet. Create a list to start finding contacts.
-      <template #action>
-        <q-btn flat color="primary" label="Create a list" to="/prospects/new" />
-      </template>
     </q-banner>
 
     <q-list v-else bordered separator>
@@ -48,7 +45,6 @@ import { Notify } from "quasar";
 import { extractErrorMessage } from "src/utils/error-message";
 
 const STATUS_LABELS = {
-  DRAFT: "Draft",
   BRIEF_SET: "Ready to run",
   SCRAPING: "Finding companies",
   ENRICHING: "Finding decision-makers",
@@ -57,7 +53,6 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  DRAFT: "grey",
   BRIEF_SET: "grey",
   SCRAPING: "primary",
   ENRICHING: "primary",

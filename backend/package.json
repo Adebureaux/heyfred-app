@@ -12,11 +12,11 @@
     "prisma:migrate": "prisma migrate dev",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "eval": "ts-node src/eval/run-eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
-    "@heyfred/shared": "workspace:*",
     "@nestjs/bullmq": "^10.2.0",
     "@nestjs/common": "^10.4.0",
     "@nestjs/config": "^3.2.0",

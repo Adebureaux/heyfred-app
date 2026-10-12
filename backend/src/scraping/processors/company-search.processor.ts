@@ -1,28 +1,12 @@
 import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { ProspectListStatus, ScrapingRunStatus } from "@prisma/client";
+import { FitVerdict, ProspectListStatus, ScrapingRunStatus } from "@prisma/client";
 import { Job, Queue } from "bullmq";
-import { AiActorSelectionService } from "../../ai-actor-selection/ai-actor-selection.service";
+import { CompanySourcesService } from "../../company-sources/company-sources.service";
 import { PrismaService } from "../../prisma/prisma.service";
-import { mapToScrapedCompany } from "../company-mapper";
+import { ProspectQualifierService } from "../../qualification/prospect-qualifier.service";
 import { ApifyRunnerService } from "../apify-runner.service";
-import {
-  COMPANY_SEARCH_QUEUE,
-  MAX_COMPANIES_PER_RUN,
-  PROSPECT_ENRICHMENT_QUEUE,
-} from "../scraping.constants";
-
-// Clamps whichever item-count field the actor's schema happens to use, regardless of what the
-// AI generated, so a first real test can't accidentally run an unbounded/expensive search.
-function clampItemLimit(input: Record<string, unknown>): Record<string, unknown> {
-  const clamped = { ...input };
-  for (const key of ["maxItems", "maxResults", "limit"]) {
-    if (key in clamped) {
-      clamped[key] = MAX_COMPANIES_PER_RUN;
-    }
-  }
-  return clamped;
-}
+import { companyPoolSize, COMPANY_SEARCH_QUEUE, PROSPECT_ENRICHMENT_QUEUE } from "../scraping.constants";
 
 interface CompanySearchJobData {
   prospectListId: string;
@@ -36,7 +20,8 @@ export class CompanySearchProcessor extends WorkerHost {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly aiActorSelection: AiActorSelectionService,
+    private readonly companySources: CompanySourcesService,
+    private readonly qualifier: ProspectQualifierService,
     private readonly apifyRunner: ApifyRunnerService,
     @InjectQueue(PROSPECT_ENRICHMENT_QUEUE) private readonly enrichmentQueue: Queue,
   ) {
@@ -55,37 +40,33 @@ export class CompanySearchProcessor extends WorkerHost {
       const prospectList = await this.prisma.prospectList.findUniqueOrThrow({
         where: { id: prospectListId },
       });
+      const source = this.companySources.forTargetType(prospectList.targetType);
+      const poolSize = companyPoolSize(prospectList.maxProspects, source.prospectsPerCompany);
+      const input = await source.buildInput(prospectList, poolSize);
 
-      const { actorId, reasoning } = await this.aiActorSelection.selectActor(prospectList);
-
-      // Persist the AI's choice immediately, before fetching its input schema or building the
-      // input — so the decision is visible/auditable even if a later step fails.
+      // Persisted before the paid call, so the exact query is visible even if the run fails.
       await this.prisma.scrapingRun.update({
         where: { id: scrapingRunId },
-        data: { selectedActorId: actorId, selectionReasoning: reasoning },
+        data: { selectedActorId: source.actorId, actorInput: input as any },
       });
 
-      const rawInput = await this.aiActorSelection.buildActorInput(actorId, prospectList);
-      const input = clampItemLimit(rawInput);
+      const items = await this.apifyRunner.runActor(source.actorId, input);
+      const companies = source.toCompanies(items).slice(0, poolSize);
+      const fits = await this.qualifier.qualifyCompanies(prospectList, companies);
 
-      await this.prisma.scrapingRun.update({
-        where: { id: scrapingRunId },
-        data: { actorInput: input as any },
-      });
-
-      const rawItems = await this.apifyRunner.runActor(actorId, input);
-      // Some actors return a "no results" marker object instead of an empty array when a
-      // search matches nothing (seen in real testing: { found: false, message: "..." }) —
-      // filter those out rather than persisting them as fake companies.
-      const realItems = rawItems.filter((item) => item.found !== false);
-      const companies = realItems.slice(0, MAX_COMPANIES_PER_RUN).map(mapToScrapedCompany);
-
+      // Rejected companies are kept too, with the reason, so the selection stays explainable;
+      // only the others go on to the decision-maker search.
       await this.prisma.scrapedCompany.createMany({
-        data: companies.map((company) => ({
+        data: companies.map((company, i) => ({
           prospectListId,
           name: company.name,
           domain: company.domain,
           linkedinUrl: company.linkedinUrl,
+          linkedinCompanyId: company.linkedinCompanyId,
+          email: company.email,
+          phone: company.phone,
+          fitVerdict: fits[i].verdict,
+          fitReason: fits[i].reason,
           raw: company.raw as any,
         })),
       });
@@ -95,8 +76,12 @@ export class CompanySearchProcessor extends WorkerHost {
         data: {
           status: ScrapingRunStatus.SUCCEEDED,
           finishedAt: new Date(),
-          resultCount: companies.length,
+          resultCount: fits.filter((fit) => fit.verdict !== FitVerdict.MISMATCH).length,
         },
+      });
+      await this.prisma.prospectList.update({
+        where: { id: prospectListId },
+        data: { status: ProspectListStatus.ENRICHING },
       });
 
       await this.enrichmentQueue.add("run", {

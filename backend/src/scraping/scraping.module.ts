@@ -1,6 +1,7 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
-import { AiActorSelectionModule } from "../ai-actor-selection/ai-actor-selection.module";
+import { CompanySourcesModule } from "../company-sources/company-sources.module";
+import { QualificationModule } from "../qualification/qualification.module";
 import { UnipileModule } from "../unipile/unipile.module";
 import { ApifyRunnerService } from "./apify-runner.service";
 import { CompanySearchProcessor } from "./processors/company-search.processor";
@@ -11,7 +12,8 @@ import { ScrapingService } from "./scraping.service";
 @Module({
   imports: [
     BullModule.registerQueue({ name: COMPANY_SEARCH_QUEUE }, { name: PROSPECT_ENRICHMENT_QUEUE }),
-    AiActorSelectionModule,
+    CompanySourcesModule,
+    QualificationModule,
     UnipileModule,
   ],
   providers: [ScrapingService, ApifyRunnerService, CompanySearchProcessor, ProspectEnrichmentProcessor],

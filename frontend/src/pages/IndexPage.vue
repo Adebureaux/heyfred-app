@@ -143,7 +143,7 @@ export default defineComponent({
   border: 1px solid #d39b613b;
   padding: 6px 10px;
   border-radius: 6px;
-  font-size: 18px;
+  font-size: 16px;
   transform: rotate(5deg);
 }
 

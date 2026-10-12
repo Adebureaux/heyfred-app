@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { ProspectListStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateProspectListDto } from "./dto/create-prospect-list.dto";
 
@@ -9,7 +8,7 @@ export class ProspectListsService {
 
   create(userId: string, dto: CreateProspectListDto) {
     return this.prisma.prospectList.create({
-      data: { ...dto, userId, status: ProspectListStatus.BRIEF_SET },
+      data: { ...dto, targetJobTitles: dto.targetJobTitles ?? [], userId },
     });
   }
 

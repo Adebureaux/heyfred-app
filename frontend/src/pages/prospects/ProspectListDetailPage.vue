@@ -15,7 +15,7 @@
 
       <q-card flat bordered class="q-mb-md">
         <q-card-section>
-          <div class="text-subtitle2 q-mb-sm">Targeting</div>
+          <div class="text-subtitle2 q-mb-sm">Targeting · {{ targetTypeLabel }}</div>
           <div class="q-gutter-xs q-mb-sm">
             <q-chip v-for="title in list.targetJobTitles" :key="title" dense outline color="primary" text-color="primary">
               {{ title }}
@@ -24,6 +24,9 @@
           <div class="text-body2 text-grey-8">
             {{ list.targetIndustries.join(", ") }} · {{ list.targetLocations.join(", ") }}
           </div>
+          <div class="text-caption text-grey q-mt-xs">
+            Up to {{ list.maxProspects }} prospect{{ list.maxProspects === 1 ? "" : "s" }} per run
+          </div>
         </q-card-section>
       </q-card>
 
@@ -31,6 +34,24 @@
         <q-card-section class="row items-center justify-between">
           <div>Ready to find companies and decision-makers matching this brief.</div>
           <q-btn color="primary" label="Find prospects" :loading="triggering" @click="onRun" />
+        </q-card-section>
+      </q-card>
+
+      <q-card v-if="['READY', 'FAILED'].includes(list.status)" flat bordered class="q-mb-md">
+        <q-card-section class="row items-center justify-between">
+          <div>
+            Run this brief again to look for prospects.
+            <div class="text-caption text-grey">
+              This replaces any prospects already found for this list and uses real API credits.
+            </div>
+          </div>
+          <q-btn
+            color="primary"
+            label="Run again"
+            icon="refresh"
+            :loading="triggering"
+            @click="onRunAgain"
+          />
         </q-card-section>
       </q-card>
 
@@ -56,13 +77,12 @@
                 />
               </q-item-section>
               <q-item-section>
-                {{ run.stage === "COMPANY_SEARCH" ? "Company search" : "Decision-maker search" }}
+                {{ stageLabel(run.stage) }}
                 <div v-if="run.status === 'SUCCEEDED'" class="text-caption text-grey">
                   {{ run.resultCount ?? 0 }} result{{ run.resultCount === 1 ? "" : "s" }}
                 </div>
-                <div v-if="run.selectedActorId" class="text-caption text-grey-7">
-                  Source: {{ run.selectedActorId }}
-                  <span v-if="run.selectionReasoning">— {{ run.selectionReasoning }}</span>
+                <div v-if="run.stage === 'COMPANY_SEARCH'" class="text-caption text-grey-7">
+                  Source: {{ sourceLabel }}
                 </div>
                 <div v-if="run.error" class="text-caption text-negative">{{ run.error }}</div>
               </q-item-section>
@@ -85,6 +105,19 @@
         <q-card-section>
           <div class="text-subtitle2 q-mb-sm">Prospects found ({{ prospects.length }})</div>
           <q-table :rows="prospects" :columns="prospectColumns" row-key="id" flat dense :pagination="{ rowsPerPage: 10 }">
+            <template #body-cell-fit="props">
+              <q-td :props="props" class="fit-cell">
+                <q-chip
+                  v-if="props.row.fitVerdict"
+                  dense
+                  :color="props.row.fitVerdict === 'MATCH' ? 'positive' : 'warning'"
+                  text-color="white"
+                >
+                  {{ props.row.fitVerdict === "MATCH" ? "Match" : "Partial" }}
+                </q-chip>
+                <div class="text-caption text-grey-8">{{ props.row.fitReason }}</div>
+              </q-td>
+            </template>
             <template #body-cell-linkedinUrl="props">
               <q-td :props="props">
                 <a v-if="props.value" :href="props.value" target="_blank" rel="noopener">Profile</a>
@@ -98,14 +131,13 @@
 </template>
 
 <script>
-import { defineComponent, ref, onMounted, onUnmounted } from "vue";
+import { computed, defineComponent, ref, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { api } from "boot/axios";
-import { Notify } from "quasar";
+import { Dialog, Notify } from "quasar";
 import { extractErrorMessage } from "src/utils/error-message";
 
 const STATUS_LABELS = {
-  DRAFT: "Draft",
   BRIEF_SET: "Ready to run",
   SCRAPING: "Finding companies",
   ENRICHING: "Finding decision-makers",
@@ -114,7 +146,6 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  DRAFT: "grey",
   BRIEF_SET: "grey",
   SCRAPING: "primary",
   ENRICHING: "primary",
@@ -136,13 +167,22 @@ const RUN_STATUS_COLORS = {
   FAILED: "negative",
 };
 
+const TARGET_TYPES = {
+  B2B_COMPANIES: { label: "B2B companies", source: "LinkedIn company search" },
+  AGENCIES_FREELANCERS: { label: "Agencies & freelancers", source: "Clutch, DesignRush & Sortlist" },
+  LOCAL_BUSINESSES: { label: "Local businesses", source: "Google Maps" },
+};
+
+// Prospects can be people or, for local businesses and some agencies, the business itself
+// (whose name sits in firstName), so the name is shown as a single column.
 const PROSPECT_COLUMNS = [
-  { name: "firstName", label: "First name", field: "firstName", align: "left" },
-  { name: "lastName", label: "Last name", field: "lastName", align: "left" },
+  { name: "name", label: "Name", field: (row) => `${row.firstName} ${row.lastName}`.trim(), align: "left" },
   { name: "jobTitle", label: "Title", field: "jobTitle", align: "left" },
   { name: "company", label: "Company", field: (row) => row.company?.name ?? "", align: "left" },
   { name: "email", label: "Email", field: "email", align: "left" },
+  { name: "phone", label: "Phone", field: "phone", align: "left" },
   { name: "linkedinUrl", label: "LinkedIn", field: "linkedinUrl", align: "left" },
+  { name: "fit", label: "Fit", field: "fitVerdict", align: "left" },
 ];
 
 export default defineComponent({
@@ -170,6 +210,13 @@ export default defineComponent({
     }
     function runStatusColor(status) {
       return RUN_STATUS_COLORS[status] ?? "grey";
+    }
+
+    const targetTypeLabel = computed(() => TARGET_TYPES[list.value?.targetType]?.label ?? "");
+    const sourceLabel = computed(() => TARGET_TYPES[list.value?.targetType]?.source ?? "");
+    function stageLabel(stage) {
+      if (stage === "COMPANY_SEARCH") return "Company search";
+      return list.value?.targetType === "LOCAL_BUSINESSES" ? "Contacts" : "Decision-maker search";
     }
 
     async function fetchList() {
@@ -214,6 +261,7 @@ export default defineComponent({
       triggering.value = true;
       try {
         runs.value = await api.post(`/prospect-lists/${listId}/run`).then((res) => res.data);
+        prospects.value = [];
         await fetchList();
         startPolling();
       } catch (err) {
@@ -224,6 +272,17 @@ export default defineComponent({
       } finally {
         triggering.value = false;
       }
+    }
+
+    function onRunAgain() {
+      Dialog.create({
+        title: "Run again?",
+        message:
+          "This deletes the prospects and companies already found for this list, then searches again using real API credits.",
+        persistent: true,
+        ok: { label: "Run again", color: "primary" },
+        cancel: { label: "Cancel", flat: true },
+      }).onOk(onRun);
     }
 
     onMounted(async () => {
@@ -256,17 +315,25 @@ export default defineComponent({
       triggering,
       unipileConnected,
       prospectColumns: PROSPECT_COLUMNS,
+      targetTypeLabel,
+      sourceLabel,
+      stageLabel,
       statusLabel,
       statusColor,
       runStatusLabel,
       runStatusColor,
       onRun,
+      onRunAgain,
     };
   },
 });
 </script>
 
 <style scoped>
+.fit-cell {
+  min-width: 220px;
+  white-space: normal;
+}
 .heyfred-banner {
   background: var(--heyfred-peach);
   border: 1px solid var(--heyfred-border);
